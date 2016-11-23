@@ -26,12 +26,70 @@ class Saferpay
     protected $logger;
 
     /**
-     * @param HttpClientInterface $httpClient
+     * @param  CollectionItemInterface $payInitParameter
+     * @return mixed
+     */
+    public function createPayInit(CollectionItemInterface $payInitParameter)
+    {
+        return $this->request($payInitParameter->getRequestUrl(), $payInitParameter->getData());
+    }
+
+    /**
+     * @param $url
+     * @param  array $data
+     * @return mixed
+     * @throws \Exception
+     */
+    protected function request($url, array $data)
+    {
+        $data = http_build_query($data);
+
+        $this->getLogger()->debug($url);
+        $this->getLogger()->debug($data);
+
+        $response = $this->getHttpClient()->request(
+            'POST',
+            $url,
+            $data,
+            ['Content-Type' => 'application/x-www-form-urlencoded']
+        );
+
+        $this->getLogger()->debug($response->getContent());
+
+        if ($response->getStatusCode() != 200) {
+            $this->getLogger()->critical('Saferpay: request failed with statuscode: {statuscode}!',
+                ['statuscode' => $response->getStatusCode()]);
+            throw new \Exception('Saferpay: request failed with statuscode: ' . $response->getStatusCode() . '!');
+        }
+
+        if (strpos($response->getContent(), 'ERROR') !== false) {
+            $this->getLogger()->critical('Saferpay: request failed: {content}!',
+                ['content' => $response->getContent()]);
+            throw new \Exception('Saferpay: request failed: ' . $response->getContent() . '!');
+        }
+
+        return $response->getContent();
+    }
+
+    /**
+     * @return LoggerInterface
+     */
+    protected function getLogger()
+    {
+        if (is_null($this->logger)) {
+            $this->logger = new NullLogger();
+        }
+
+        return $this->logger;
+    }
+
+    /**
+     * @param LoggerInterface $logger
      * @return $this
      */
-    public function setHttpClient(HttpClientInterface $httpClient)
+    public function setLogger(LoggerInterface $logger)
     {
-        $this->httpClient = $httpClient;
+        $this->logger = $logger;
 
         return $this;
     }
@@ -50,35 +108,14 @@ class Saferpay
     }
 
     /**
-     * @param LoggerInterface $logger
+     * @param HttpClientInterface $httpClient
      * @return $this
      */
-    public function setLogger(LoggerInterface $logger)
+    public function setHttpClient(HttpClientInterface $httpClient)
     {
-        $this->logger = $logger;
+        $this->httpClient = $httpClient;
 
         return $this;
-    }
-
-    /**
-     * @return LoggerInterface
-     */
-    protected function getLogger()
-    {
-        if (is_null($this->logger)) {
-            $this->logger = new NullLogger();
-        }
-
-        return $this->logger;
-    }
-
-    /**
-     * @param  CollectionItemInterface $payInitParameter
-     * @return mixed
-     */
-    public function createPayInit(CollectionItemInterface $payInitParameter)
-    {
-        return $this->request($payInitParameter->getRequestUrl(), $payInitParameter->getData());
     }
 
     /**
@@ -94,20 +131,41 @@ class Saferpay
         }
 
         $this->fillDataFromXML($payConfirmParameter, $xml);
-        $this->request($payConfirmParameter->getRequestUrl(), array(
+        $this->request($payConfirmParameter->getRequestUrl(), [
             'DATA' => $xml,
-            'SIGNATURE' => $signature
-        ));
+            'SIGNATURE' => $signature,
+        ]);
 
         return $payConfirmParameter;
     }
 
     /**
-     * @param  CollectionItemInterface            $payConfirmParameter
-     * @param  string                             $action
-     * @param  null                               $spPassword
-     * @param  CollectionItemInterface            $payCompleteParameter
-     * @param  CollectionItemInterface            $payCompleteResponse
+     * @param CollectionItemInterface $data
+     * @param $xml
+     * @throws \Exception
+     */
+    protected function fillDataFromXML(CollectionItemInterface $data, $xml)
+    {
+        $document = new \DOMDocument();
+        $fragment = $document->createDocumentFragment();
+
+        if (!$fragment->appendXML($xml)) {
+            $this->getLogger()->critical('Saferpay: Invalid xml received from saferpay');
+            throw new \Exception('Saferpay: Invalid xml received from saferpay!');
+        }
+
+        foreach ($fragment->firstChild->attributes as $attribute) {
+            /** @var \DOMAttr $attribute */
+            $data->set($attribute->nodeName, $attribute->nodeValue);
+        }
+    }
+
+    /**
+     * @param  CollectionItemInterface $payConfirmParameter
+     * @param  string $action
+     * @param  null $spPassword
+     * @param  CollectionItemInterface $payCompleteParameter
+     * @param  CollectionItemInterface $payCompleteResponse
      * @return CollectionItemInterface
      * @throws Exception\NoPasswordGivenException
      * @throws \Exception
@@ -136,9 +194,14 @@ class Saferpay
         $payCompleteParameterData = $payCompleteParameter->getData();
 
         if ($this->isTestAccountId($payCompleteParameter->get('ACCOUNTID'))) {
-            $payCompleteParameterData = array_merge($payCompleteParameterData, array('spPassword' => PayInitParameterInterface::SAFERPAYTESTACCOUNT_SPPASSWORD));
+            $payCompleteParameterData = array_merge($payCompleteParameterData,
+                ['spPassword' => PayInitParameterInterface::SAFERPAYTESTACCOUNT_SPPASSWORD]);
         } elseif ($action != PayCompleteParameterInterface::ACTION_SETTLEMENT && !$spPassword) {
             throw new NoPasswordGivenException();
+        }
+
+        if ($spPassword !== null) {
+            $payCompleteParameterData['spPassword'] = $spPassword;
         }
 
         $response = $this->request($payCompleteParameter->getRequestUrl(), $payCompleteParameterData);
@@ -150,62 +213,6 @@ class Saferpay
         $this->fillDataFromXML($payCompleteResponse, substr($response, 3));
 
         return $payCompleteResponse;
-    }
-
-    /**
-     * @param $url
-     * @param  array      $data
-     * @return mixed
-     * @throws \Exception
-     */
-    protected function request($url, array $data)
-    {
-        $data = http_build_query($data);
-
-        $this->getLogger()->debug($url);
-        $this->getLogger()->debug($data);
-
-        $response = $this->getHttpClient()->request(
-            'POST',
-            $url,
-            $data,
-            array('Content-Type' => 'application/x-www-form-urlencoded')
-        );
-
-        $this->getLogger()->debug($response->getContent());
-
-        if ($response->getStatusCode() != 200) {
-            $this->getLogger()->critical('Saferpay: request failed with statuscode: {statuscode}!', array('statuscode' => $response->getStatusCode()));
-            throw new \Exception('Saferpay: request failed with statuscode: ' . $response->getStatusCode() . '!');
-        }
-
-        if (strpos($response->getContent(), 'ERROR') !== false) {
-            $this->getLogger()->critical('Saferpay: request failed: {content}!', array('content' => $response->getContent()));
-            throw new \Exception('Saferpay: request failed: ' . $response->getContent() . '!');
-        }
-
-        return $response->getContent();
-    }
-
-    /**
-     * @param CollectionItemInterface $data
-     * @param $xml
-     * @throws \Exception
-     */
-    protected function fillDataFromXML(CollectionItemInterface $data, $xml)
-    {
-        $document = new \DOMDocument();
-        $fragment = $document->createDocumentFragment();
-
-        if (!$fragment->appendXML($xml)) {
-            $this->getLogger()->critical('Saferpay: Invalid xml received from saferpay');
-            throw new \Exception('Saferpay: Invalid xml received from saferpay!');
-        }
-
-        foreach ($fragment->firstChild->attributes as $attribute) {
-            /** @var \DOMAttr $attribute */
-            $data->set($attribute->nodeName, $attribute->nodeValue);
-        }
     }
 
     /**
