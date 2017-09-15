@@ -41,4 +41,9 @@ interface CollectionItemInterface
      * @return string
      */
     public function getName();
+
+    /**
+     * @return bool
+     */
+    public function isTest();
 }

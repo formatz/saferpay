@@ -5,17 +5,13 @@ namespace Payment\Saferpay\Data;
 interface PayInitParameterInterface
 {
     const REQUEST_URL = 'https://www.saferpay.com/hosting/CreatePayInit.asp';
+    const REQUEST_URL_TEST = 'https://test.saferpay.com/hosting/CreatePayInit.asp';
 
     /**
      * The Saferpay account number for this merchant Transaction.
      * For example, "99867-94913159" for the Saferpay test account
      */
     const ACCOUNTID = 'ns[..15]';
-
-    const SAFERPAYTESTACCOUNT_ACCOUNTID = '99867-94913159';
-    const SAFERPAYTESTACCOUNT_SPPASSWORD = 'XAjc3Kna';
-
-    const TESTACCOUNT_PREFIX = '99867-';
 
     /**
      * Payment amount in the smallest currency unit.

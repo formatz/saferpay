@@ -5,6 +5,7 @@ namespace Payment\Saferpay\Data;
 interface PayCompleteParameterInterface
 {
     const REQUEST_URL = 'https://www.saferpay.com/hosting/PayCompleteV2.asp';
+    const REQUEST_URL_TEST = 'https://test.saferpay.com/hosting/PayCompleteV2.asp';
 
     /**
      * Saferpay unique transaction identifier.

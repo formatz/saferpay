@@ -193,10 +193,7 @@ class Saferpay
 
         $payCompleteParameterData = $payCompleteParameter->getData();
 
-        if ($this->isTestAccountId($payCompleteParameter->get('ACCOUNTID'))) {
-            $payCompleteParameterData = array_merge($payCompleteParameterData,
-                ['spPassword' => PayInitParameterInterface::SAFERPAYTESTACCOUNT_SPPASSWORD]);
-        } elseif ($action != PayCompleteParameterInterface::ACTION_SETTLEMENT && !$spPassword) {
+        if ($action != PayCompleteParameterInterface::ACTION_SETTLEMENT && !$spPassword) {
             throw new NoPasswordGivenException();
         }
 
@@ -213,16 +210,5 @@ class Saferpay
         $this->fillDataFromXML($payCompleteResponse, substr($response, 3));
 
         return $payCompleteResponse;
-    }
-
-    /**
-     * @param  string $accountId
-     * @return bool
-     */
-    protected function isTestAccountId($accountId)
-    {
-        $prefix = PayInitParameterInterface::TESTACCOUNT_PREFIX;
-
-        return substr($accountId, 0, strlen($prefix)) === $prefix;
     }
 }

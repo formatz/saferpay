@@ -26,6 +26,11 @@ abstract class AbstractCollectionItem implements CollectionItemInterface
      */
     protected $invalidData;
 
+    /**
+     * @var bool
+     */
+    protected $test = false;
+
     public function __construct()
     {
         $this->data = array();
@@ -79,10 +84,31 @@ abstract class AbstractCollectionItem implements CollectionItemInterface
     }
 
     /**
+     * @return bool
+     */
+    public function isTest()
+    {
+        return $this->test;
+    }
+
+    /**
+     * @param bool $test
+     * @return AbstractCollectionItem
+     */
+    public function setTest($test)
+    {
+        $this->test = $test;
+        return $this;
+    }
+
+    /**
      * @return string
      */
     public function getRequestUrl()
     {
+        if($this->isTest() && $this->getReflectionClass()->hasConstant('REQUEST_URL_TEST')) {
+            return $this->getReflectionClass()->getConstant('REQUEST_URL_TEST');
+        }
         return $this->getReflectionClass()->hasConstant('REQUEST_URL') ? $this->getReflectionClass()->getConstant('REQUEST_URL') : '';
     }
 

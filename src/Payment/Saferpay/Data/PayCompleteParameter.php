@@ -87,6 +87,9 @@ class PayCompleteParameter extends AbstractCollectionItem implements PayComplete
      */
     public function getRequestUrl()
     {
+        if($this->isTest()) {
+            return PayCompleteParameterInterface::REQUEST_URL_TEST;
+        }
         return PayCompleteParameterInterface::REQUEST_URL;
     }
 

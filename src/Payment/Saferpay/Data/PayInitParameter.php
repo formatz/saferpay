@@ -657,6 +657,9 @@ class PayInitParameter extends AbstractCollectionItem implements PayInitParamete
      */
     public function getRequestUrl()
     {
+        if($this->isTest()) {
+            return PayInitParameterInterface::REQUEST_URL_TEST;
+        }
         return PayInitParameterInterface::REQUEST_URL;
     }
 

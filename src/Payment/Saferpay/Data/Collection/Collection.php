@@ -13,6 +13,11 @@ class Collection implements CollectionItemInterface
     protected $requestUrl;
 
     /**
+     * @var bool
+     */
+    protected $test;
+
+    /**
      * @var string
      */
     protected $name;
@@ -32,13 +37,14 @@ class Collection implements CollectionItemInterface
      */
     protected $invalidData;
 
-    public function __construct($requestUrl, $name = 'collection')
+    public function __construct($requestUrl, $name = 'collection', $test = false)
     {
         $this->requestUrl = $requestUrl;
         $this->name = $name;
         $this->collectionItems = array();
         $this->fieldsOfCollectionItems = array();
         $this->invalidData = array();
+        $this->test = $test;
     }
 
     /**
@@ -123,6 +129,14 @@ class Collection implements CollectionItemInterface
     public function getRequestUrl()
     {
         return $this->requestUrl;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isTest()
+    {
+        return $this->test;
     }
 
     /**

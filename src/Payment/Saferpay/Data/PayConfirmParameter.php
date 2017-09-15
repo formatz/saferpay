@@ -391,6 +391,9 @@ class PayConfirmParameter extends AbstractCollectionItem implements PayConfirmPa
      */
     public function getRequestUrl()
     {
+        if($this->isTest()) {
+            return PayConfirmParameterInterface::REQUEST_URL_TEST;
+        }
         return PayConfirmParameterInterface::REQUEST_URL;
     }
 

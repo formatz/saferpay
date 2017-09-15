@@ -5,6 +5,7 @@ namespace Payment\Saferpay\Data;
 interface PayConfirmParameterInterface
 {
     const REQUEST_URL = 'https://www.saferpay.com/hosting/VerifyPayConfirm.asp';
+    const REQUEST_URL_TEST = 'https://test.saferpay.com/hosting/VerifyPayConfirm.asp';
 
     /**
      * Always contains the value "PayConfirm".
